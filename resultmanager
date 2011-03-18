@@ -14,140 +14,119 @@ def parse(string):
  string = re.sub(r'\t{1,6}', ' ', string)	
  string = re.sub(r'.*Status|P : Passed.*', '', string)
  string = re.sub(r' {2,}', ' ', string)
- string = string.lstrip()
+ string = string.strip()
  return string
 
 #Returns true if student has failed in atleast one subject. False is returned otherwise.
-def fail(string):
- return re.search(r' F ', string)
+def failed(string):
+ return re.search(r' F |F$', string)
  
-#Returns the total marks in which the exams were conducted.
-#FIXME: Wants to be rewritten so as to find out the total marks from the pruned data itself.
-def find_total(string):
- sem = re.search(r'Semester : .*? ', string).group().split()[2]
- 
- if sem == 'Third':
-  total = 1200
- elif sem == 'Fourth':
-  total = 1200
- elif sem == 'Fifth':
-  total = 1200
- elif sem == 'Sixth':
-  total = 1100
- elif sem == 'Seventh':
-  total = 1000
- elif sem == 'Eighth':
-  total = 1100
- else:
-  total = 1450
+#Returns the first subject string in the input string.
+def subject_string_match(string):
+ substr = re.search(r'([a-zA-Z-&] *)+([0-9-] *)+ [PF]', string)
+ return substr
 
- return total
+#Returns the string after deletion of 'A' from the end if presnt
+def stripA(string):
+ string = string.rstrip(' A ')
+ string = string.rstrip(' A')
+ string = string.strip()
+ return string
 
-#Returns the number of numbers in string.  
-def numbersin(string):
- if(re.search(r'[0-9]+ [0-9]+ [0-9]+', string)):
-  return 3
- else:
-  return 2
-
-#Returns the dictionary whose keys are subjects and value is 0.
+#Returns the dictionary - key: subject; value: 0.
 def filter_subjects(string):
  sub_dict = {}
  while string:
-  substring = re.search(r'[A-Z-]+.*?P ', string).group()
-  sub = re.search(r'([A-Z-]+ *)+', substring).group()
-  sub = sub.strip()
+  string = string.strip()
+  substring = subject_string_match(string).group()
+  sub = re.search(r'([a-zA-Z-&] *)+', substring).group().strip()
+  sub = stripA(sub)
   sub_dict[sub] = 0
   string = string[len(substring):]
  return sub_dict
 
 #Returns true if the particular string contains label 'withheld'/'Withheld'
 def no_result(string):
- return re.search(r'withheld|Withheld', string)
+ return re.search(r'withheld|Withheld|invalid|not registered', string)
 
+#Return the number of digits in roll number.
+def num_of_digits_roll(string):
+ roll = re.search(r'(?<=regno=)[A-Za-z0-9]+', string).group()
+ num = re.search(r'[0-9]+', roll).group()
+ return len(num)
+
+#Returns the subject-total, ie the last number(before the symbol 'P') in input subject line.
 def subtotal(string):
  subtot = re.search(r'[0-9]+ P', string).group().split()[0]
  return int(subtot)
 #############################End of function definitions################################                   
 
 #Declarations of variables and data structures used.
-i = 0
+
 failed_students = 0
-subject_dict = {}
-no_of_students = 72
-failed = 0
-flag = True
-total = 1100
-individual_total = [0] * no_of_students
+flag = False
+url = raw_input('Enter the url of result page of first(any) student from university website: ')
+total = int(raw_input('Enter the total marks: '))
+students = int(raw_input('Enter the total number of students: '))
+individual_total = [0] * (students + 1)
+effective_students = students
 
-link = raw_input('Enter the link of the result from university website: ')
-prefix = raw_input('Enter the prefix of roll numbers: ')
+roll_prefix = re.search(r'(?<=regno=)[a-zA-Z]+', url).group()
+url_prefix = re.search(r'.*?regno=', url).group()
 
-#The result links of each semester in the university website has a pattern which differs only in this 'id'.
-#Someday if they change the pattern, this is the part to tweak.
-id = re.search(r'id=[0-9]+', link).group()[3:]
-
-#The intention of this section is to find the total marks of exams conducted & the full list of subjects.
-#For that the loop iterates and finds the first full-pass student. A bit ugly..:P
-while flag:
- i += 1
- 
+#Populates the subject-dictionary.
+page = urlopen(url).read()
+result_string = parse(page)
+subject_dict = filter_subjects(result_string)
+zero_num = num_of_digits_roll(url) - 1
+#Does the calculation of pass-status, per-subject-pass-status & total of each student.
+for i in range(1, students + 1):
  if i < 10:
-  roll = prefix + '00' + str(i)
+  roll = roll_prefix + zero_num * '0' + str(i)
+ elif i < 100:
+  roll = roll_prefix + (zero_num - 1) * '0' + str(i)
  else:
-  roll = prefix + '0' + str(i)
-
- page = urlopen('http://202.88.252.6/exams/results1/btechNEW/btechresults_display.php?id=' + id + '&regno=' + roll + '&Submit=Submit').read()
- pruned_info = parse(page)
+  roll = roll_prefix + (zero_num - 2) * '0' + str(i)
+ fail = False
+ page = urlopen(url_prefix + roll + '&Submit=Submit').read()
+ result_string = parse(page)
  
- if not fail(pruned_info):
-  total = find_total(page)
-  subject_dict = filter_subjects(pruned_info)
-  flag = False
-
-#Determines the pass-status & per-subject-pass-status of each student.
-for i in range(1, 72):
- if i < 10:
-  roll = prefix + '00' + str(i)
- else:
-  roll = prefix + '0' + str(i)
-
- page = urlopen('http://202.88.252.6/exams/results1/btechNEW/btechresults_display.php?id=' + id + '&regno=' + roll + '&Submit=Submit').read()
- pruned_info = parse(page)
- 
- if no_result(pruned_info):
-  no_of_students -= 1
- 
- failed = re.search(r' F ', pruned_info)
- if failed:
+ if no_result(result_string):
+  effective_students -= 1
+ if failed(result_string):
+  fail = True
   failed_students += 1
 
- sub=re.search(r'(([A-Z-]+ )+[A0] [0-9]* - F )|(([A-Z-]+ )+([0-9]+ )+[PF] )', pruned_info)
-
+ sub = subject_string_match(result_string)
  while(sub):
   subject_line=sub.group()
-  subject = re.search(r'([A-Z-]{2,} )+', subject_line).group().strip()
+  subject = re.search(r'([a-zA-Z-&] *)+', subject_line).group().strip()
+  subject = stripA(subject)
 
-  f = re.search(r' F ', subject_line)
-  if f:
+  if failed(subject_line):
    subject_dict[subject] += 1
-  if not failed:
+  if not fail:
    individual_total[i] += subtotal(subject_line)
 
-  pruned_info=pruned_info[len(subject_line):]
-  sub=re.search(r'(([A-Z-]+ )+[A0] [0-9]* - F )|(([A-Z]* )+([0-9]* )+[PF] )', pruned_info)
+  result_string = result_string[len(subject_line):].strip()
+  sub = subject_string_match(result_string)
 
 #Printing section
-print '\nThe individual totals & percentages of students:'
-for i in range(1, 72):
+print '\nRoll number   Total   Percentage'
+print '-----------   -----   ----------'
+for i in range(1, students + 1):
  if i < 10:
-  roll = prefix + '00' + str(i)
+  roll = roll_prefix + zero_num * '0' + str(i)
+ elif i < 100:
+  roll = roll_prefix + (zero_num - 1) * '0' + str(i)
  else:
-  roll = prefix + '0' + str(i)
- if individual_total[i]:
-  print roll, ':', individual_total[i], '-', '%.2f' %(float(individual_total[i])/total*100) 
+  roll = roll_prefix + (zero_num - 2) * '0' + str(i)
 
-print "\nClass pass percentage: %.4f\n" %(float(no_of_students-failed_students)/no_of_students*100)
+ if individual_total[i]:
+  print roll, '   ', individual_total[i], '   -   ', '%.2f' %(float(individual_total[i])/total*100) 
+
+print "\nClass Pass Percentage: %.4f\n" %(float(effective_students-failed_students)/effective_students*100)
 
 for subject in subject_dict:
- print 'Pass percentage of', subject, "is: %.4f" %(float(no_of_students-subject_dict[subject])/no_of_students*100)
+ print 'Pass Percentage in', subject, "is: %.4f" %(float(effective_students-subject_dict[subject])/effective_students*100)
+print
