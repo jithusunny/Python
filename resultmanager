@@ -11,7 +11,7 @@ from urllib import urlopen
 #Parses the HTML code and returns plain text
 def parse(string):
  string = re.sub(r'<.*?>|\n|[A-Z]+[0-9]+', '', string)
- string = re.sub(r'\t{1,6}', ' ', string)	
+ string = re.sub(r'\t{1,6}', ' ', string)
  string = re.sub(r'.*Status|P : Passed.*', '', string)
  string = re.sub(r' {2,}', ' ', string)
  string = string.strip()
@@ -59,10 +59,9 @@ def num_of_digits_roll(string):
 def subtotal(string):
  subtot = re.search(r'[0-9]+ P', string).group().split()[0]
  return int(subtot)
-#############################End of function definitions################################                   
+#############################End of function definitions################################
 
 #Declarations of variables and data structures used.
-
 failed_students = 0
 flag = False
 url = raw_input('Enter the url of result page of first(any) student from university website: ')
@@ -79,6 +78,9 @@ page = urlopen(url).read()
 result_string = parse(page)
 subject_dict = filter_subjects(result_string)
 zero_num = num_of_digits_roll(url) - 1
+
+print '\nRoll number Total Percentage'
+print '----------- ----- ----------'
 #Does the calculation of pass-status, per-subject-pass-status & total of each student.
 for i in range(1, students + 1):
  if i < 10:
@@ -110,20 +112,9 @@ for i in range(1, students + 1):
 
   result_string = result_string[len(subject_line):].strip()
   sub = subject_string_match(result_string)
-
-#Printing section
-print '\nRoll number   Total   Percentage'
-print '-----------   -----   ----------'
-for i in range(1, students + 1):
- if i < 10:
-  roll = roll_prefix + zero_num * '0' + str(i)
- elif i < 100:
-  roll = roll_prefix + (zero_num - 1) * '0' + str(i)
- else:
-  roll = roll_prefix + (zero_num - 2) * '0' + str(i)
-
+ 
  if individual_total[i]:
-  print roll, '   ', individual_total[i], '   -   ', '%.2f' %(float(individual_total[i])/total*100) 
+  print roll, ' ', individual_total[i], ' - ', '%.2f' %(float(individual_total[i])/total*100) 
 
 print "\nClass Pass Percentage: %.4f\n" %(float(effective_students-failed_students)/effective_students*100)
 
