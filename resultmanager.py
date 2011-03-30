@@ -70,6 +70,10 @@ total = int(raw_input('Enter the total marks: '))
 students = int(raw_input('Enter the total number of students: '))
 individual_total = [0] * (students + 1)
 effective_students = students
+perc_above_80 = 0
+perc_above_75 = 0
+perc_60_to_75 = 0
+perc_below_60 = 0
 
 roll_prefix = re.search(r'(?<=regno=)[a-zA-Z]+', url).group()
 url_prefix = re.search(r'.*?regno=', url).group()
@@ -118,11 +122,28 @@ for i in range(1, students + 1):
         topper[0] = roll
         topper[1] = individual_total[i]
     if individual_total[i]:
-        print roll, ' ', individual_total[i], ' - ', '%.2f' %(float(individual_total[i])/total*100) 
+        print roll, ' ', individual_total[i], ' - ', '%.2f' %(float(individual_total[i])/total*100)
+        
+        temp = float(individual_total[i])/total * 100
+        if temp > 80:
+            perc_above_80 += 1
+        if temp > 75:
+            perc_above_75 += 1
+        if temp > 60 and temp < 75:
+            perc_60_to_75 += 1
+        if temp < 60:
+            perc_below_60 += 1
+        
 
 print '\nTopper of the class is:', topper[0], '- Marks: ', topper[1], ' Percentage: %.2f' %(float(topper[1])/total * 100)
 
-print '\nClass Pass Percentage: %.4f\n' %(float(effective_students-failed_students)/effective_students*100)
+print '\nNo.of students with percentage above 80%: ', perc_above_80
+print 'No.of students with percentage above 75%: ', perc_above_75
+print 'No.of students with percentage in between 60% and 75%: ', perc_60_to_75
+print 'No.of students with percentage below 60%: ', perc_below_60
+
+print '\nClass Pass Percentage: %.4f(%d out of %d Students)\n' %(float(effective_students-failed_students)/effective_students*100, effective_students-failed_students, effective_students)
 
 for subject in subject_dict:
     print 'Pass Percentage in', subject, "is: %.4f" %(float(effective_students-subject_dict[subject])/effective_students*100)
+print
