@@ -14,13 +14,18 @@ def shift(str, n):
     for c in str:
         if c.isalpha():
             num = ord(c) + n
-            if num < 123:
-                new += chr(num)
-            else:
-                new += chr(num - 26)
+            if c.islower():
+                if num < 123:
+                    new += chr(num)
+                else:
+                    new += chr(num - 26)
+            elif c.isupper():
+                if num < 91:
+                    new += chr(num)
+                else:
+                    new += chr(num - 26)
         else:
             new += c
-
     return new
 
 def combi(str):
