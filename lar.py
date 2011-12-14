@@ -24,4 +24,5 @@ print 'Maximum sum is:', max_sum
 print 'Largest sub array:'
 
 for i in range(start_pos, start_pos + sub_len):
-    print list[i]
+    print list[i],
+print
